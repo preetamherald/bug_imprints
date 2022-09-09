@@ -4,7 +4,7 @@ from user.selectors import get_user_instance, get_user_teams
 from .models import User
 
 
-def add_team_to_user(user_id: int, team_id: int, auth_user: User ): #TODO change name to add_team_to_user
+def add_user_to_team(user_id: int, team_id: int, auth_user: User ): #TODO change name to add_user_to_team
     if auth_user is None or user_id is None or team_id is None:
         return {"error": "Invalid data"}
 

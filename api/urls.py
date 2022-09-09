@@ -1,11 +1,32 @@
-import imp
-from posixpath import basename
-from django.contrib import admin
-from django.urls import path, include
-from rest_framework.routers import DefaultRouter
-
+# import imp
+# from posixpath import basename
+# from django.urls import include
+# from django.contrib import admin
+# from rest_framework.routers import DefaultRouter
 # from . views import teamsViewSet, bugsViewSet, userViewSet, mediaStoreViewSet, messegesViewSet, bugResolutionViewSet, bugWatchViewSet, bugDuplicateViewSet
-from . views import TeamsList, TeamsDetail, UserListView, RegisterUser, BugList, BugDetail, BugResolutionList, BugResolutionDetail, MessegeCreate, MessegeDestroy, TeamBugResolutionList
+
+from django.urls import path
+
+from . views import TeamsList, TeamsDetail, UserListView, BugList, BugDetail, BugResolutionList, BugResolutionDetail, MessegeCreate, MessegeDestroy, TeamBugResolutionList
+
+urlpatterns = [
+
+    path('userList/', UserListView.as_view()),
+    path('teams/', TeamsList.as_view()),
+    path('teams/<id>/', TeamsDetail.as_view()),
+    path('teams/bugResolution/<id>/', TeamBugResolutionList.as_view()),
+    path('bugs/', BugList.as_view()),
+    path('bugs/<id>/', BugDetail.as_view()),
+    path('bugResolution/', BugResolutionList.as_view()),
+    path('bugResolution/<id>/', BugResolutionDetail.as_view()),
+    
+    path('etc/comments/add/', MessegeCreate.as_view()),
+    path('etc/comments/<id>/', MessegeDestroy.as_view()),
+    ]
+
+
+
+
 
 
 
@@ -27,20 +48,6 @@ from . views import TeamsList, TeamsDetail, UserListView, RegisterUser, BugList,
 #     # path('add/', postData),
 #     # path('bug/', bug_list),
 #     # path('', TeamsListApiView.as_view()),
-# ]
-
-urlpatterns = [
-    path('auth/register/', RegisterUser.as_view()),
-    path('userList/', UserListView.as_view()),
-    path('teams/', TeamsList.as_view()),
-    path('teams/<id>/', TeamsDetail.as_view()),
-    path('bugs/', BugList.as_view()),
-    path('bugs/<id>/', BugDetail.as_view()),
-    path('bugResolution/', BugResolutionList.as_view()),
-    path('bugResolution/<id>/', BugResolutionDetail.as_view()),
-    path('teamBugResolution/<id>/', TeamBugResolutionList.as_view()),
-    path('etc/comments/add/', MessegeCreate.as_view()),
-    path('etc/comments/<id>/', MessegeDestroy.as_view()),
-    
     # path('', include(router.urls)),
-]
+
+# ]
