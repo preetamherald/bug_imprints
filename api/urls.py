@@ -5,7 +5,7 @@ from django.urls import path, include
 from rest_framework.routers import DefaultRouter
 
 # from . views import teamsViewSet, bugsViewSet, userViewSet, mediaStoreViewSet, messegesViewSet, bugResolutionViewSet, bugWatchViewSet, bugDuplicateViewSet
-from . views import TeamsList, TeamsDetail, UserListView, RegisterUser, BugList, BugDetail, BugResolutionList, BugResolutionDetail
+from . views import TeamsList, TeamsDetail, UserListView, RegisterUser, BugList, BugDetail, BugResolutionList, BugResolutionDetail, MessegeCreate, MessegeDestroy, TeamBugResolutionList
 
 
 
@@ -36,8 +36,11 @@ urlpatterns = [
     path('teams/<id>/', TeamsDetail.as_view()),
     path('bugs/', BugList.as_view()),
     path('bugs/<id>/', BugDetail.as_view()),
-    path('bug_resolution/', BugResolutionList.as_view()),
-    path('bug_resolution/<id>/', BugResolutionDetail.as_view()),
+    path('bugResolution/', BugResolutionList.as_view()),
+    path('bugResolution/<id>/', BugResolutionDetail.as_view()),
+    path('teamBugResolution/<id>/', TeamBugResolutionList.as_view()),
+    path('etc/comments/add/', MessegeCreate.as_view()),
+    path('etc/comments/<id>/', MessegeDestroy.as_view()),
     
     # path('', include(router.urls)),
 ]

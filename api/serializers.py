@@ -1,16 +1,19 @@
 from msilib.schema import Media
 from os import defpath
 from urllib import request
-from django.contrib.auth.models import User
 from rest_framework import serializers
 from tracker.models import Teams, Bug, MediaStore, Messeges, BugResolution, BugWatch, BugDuplicate
+
+#from django.contrib.auth.models import User # Replaced with custom user
+from django.contrib.auth import get_user_model
+User = get_user_model()
 
 
 class UserSerializer(serializers.ModelSerializer):
     password = serializers.CharField(write_only=True)
     class Meta:
         model = User
-        fields = ('pk', 'username','password')
+        fields = ('pk', 'username', 'email', 'password')
         # extra_kwargs = {
         #     'password': {'write_only': True},
         # }
@@ -68,15 +71,15 @@ class MessegesSerializer(serializers.ModelSerializer):
 
 
 class BugResolutionSerializer(serializers.ModelSerializer):
-    comments_list = serializers.SerializerMethodField(read_only=True)
+    messages_list = serializers.SerializerMethodField(read_only=True)
 
     class Meta:
         model = BugResolution
-        fields = ('pk', 'bug', 'assigned_members', 'assigned_remarks','root_cause', 'error_function', 'error_function_owner', 'pull_req_id', 'merge_req_id', 'approved_by', 'end_time', 'comments', 'comments_list')
+        fields = ('pk', 'bug', 'assigned_members', 'assigned_remarks','root_cause', 'error_function', 'error_function_owner', 'pull_req_id', 'merge_req_id', 'approved_by', 'end_time', 'messages_list')
         extra_kwargs = {'comments': {'write_only': True}}
 
-    def get_comments_list(self, obj):
-        attachments = obj.comments.all().filter(deleted_at__isnull=True)
+    def get_messages_list(self, obj):
+        attachments = Messeges.objects.all().filter(bug_resolution_id=obj).filter(deleted_at__isnull=True)
         return MessegesSerializer(attachments, many=True).data
 
 
