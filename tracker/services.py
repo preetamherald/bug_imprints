@@ -28,6 +28,16 @@ def add_messege_to_bug_resolution(message, attachments, user_id, bug_resolution_
     
     return ({"response": "Messege Successfully added to bug resolution", "files": file_response})
 
+def upload_media_return_id(files, auth_user: User = None, *args, **kwargs):
+    # if file is None or file == '' or file is []:
+    #     return {'response': 'ERROR: Invalid file'}
+    upload_status = []
+    for file in files:
+        media_store = MediaStore.objects.create(media_file=file, media_type=file.content_type)
+        media_store.save(auth_user = auth_user)
+        upload_status.append(media_store.id)
+
+    return {'response': 'Upload Successful', 'id': upload_status}
 
 def _add_files_to_obj(obj, files, auth_user: User = None):
     
@@ -36,8 +46,9 @@ def _add_files_to_obj(obj, files, auth_user: User = None):
 
     if files is []:
         return {"status": "No Files to add"}
-        
+    # upload_status = []
     for file in files:
+        # upload_status.append(upload_media_return_id(file, auth_user)) object retuns ID, needs instance of object, commented to work on later
         media_store = MediaStore.objects.create(media_file=file, media_type=file.content_type)
         media_store.save(auth_user = auth_user)
         obj.attachments.add(media_store)

@@ -11,9 +11,8 @@ from rest_framework import generics
 from rest_framework.permissions import IsAdminUser, IsAuthenticated
 
 from rest_framework_simplejwt.authentication import JWTAuthentication
-from rest_framework_simplejwt.tokens import RefreshToken
 
-from tracker.services import add_messege_to_bug_resolution
+from tracker.services import add_messege_to_bug_resolution, upload_media_return_id
 from tracker.selectors import get_assigned_team_members, get_team_members, get_team_leader
 
 # from .serializers import UserSerializer, BugSerializer,  MediaStoreSerializer, MessegesSerializer, BugResolutionSerializer, BugWatchSerializer, BugDuplicateSerializer
@@ -28,29 +27,6 @@ from django.contrib.auth import get_user_model
 User = get_user_model()
 
 
-
-class UserListView(generics.ListAPIView):
-    queryset = User.objects.all()
-    serializer_class = UserSerializer
-    permission_classes = [IsAuthenticated]
-
-class RegisterUser(generics.CreateAPIView):
-    serializer_class = UserSerializer
-
-    def post(self, request, *args, **kwargs):
-        serializer = self.get_serializer(data=request.data)
-        if not serializer.is_valid():
-            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-        self.perform_create(serializer)
-        user = User.objects.get(username=serializer.data['username'])
-        refresh = RefreshToken.for_user(user)
-        headers = self.get_success_headers(serializer.data)
-        return Response(
-            {"data": serializer.data, "refresh": str(refresh), "access": str(refresh.access_token)},
-            status=status.HTTP_201_CREATED, 
-            headers=headers,
-            )
-
 class TeamsList(generics.ListCreateAPIView):
     queryset = Teams.objects.all().filter(deleted_at__isnull=True)
     serializer_class = TeamsSerializer
@@ -62,6 +38,10 @@ class TeamsList(generics.ListCreateAPIView):
         else:
             self.permission_classes = [IsAdminUser] # only admin can create teams
         return super(TeamsList, self).get_permissions()
+
+    def get(self, request, *args, **kwargs):
+        self.queryset = Teams.objects.select_related('team_leader').filter(deleted_at__isnull=True)
+        return super().get(request, *args, **kwargs)
 
     def post(self, request, *args, **kwargs):
         """This was just to see id i could check it this way. I can, but i do now wish to remove it now."""
@@ -194,7 +174,7 @@ class MessegeDestroy(SoftDeleteModelMixin, generics.DestroyAPIView):
     lookup_field = 'id'
 
 
-class TeamBugResolutionList(generics.RetrieveAPIView):
+class TeamBugResolutionList(generics.RetrieveAPIView): # get all bug resolution entries for a team
     class TeamBugResolutionSerializer(serializers.ModelSerializer):
         team_leader_name = serializers.ReadOnlyField(source='team_leader.username')
         bug_resolution_list = serializers.SerializerMethodField(read_only=True)
@@ -224,8 +204,20 @@ class TeamBugResolutionList(generics.RetrieveAPIView):
         return self.retrieve(request, *args, **kwargs)
 
 
+class MediaUpload(generics.CreateAPIView):
+    authentication_classes = [JWTAuthentication]
+    permission_classes = [IsAuthenticated]
 
+    def post(self, request, *args, **kwargs):
+        files = request.FILES.getlist("attachment")
+        if files is None or files == '' or files is []:
+            return Response({'response': 'ERROR: No Files Received'}, status=status.HTTP_400_BAD_REQUEST)
+        context = upload_media_return_id(files=files)
+        # context = add_media_to_bug_resolution(**serializer.validated_data, files = request.FILES.getlist("media"))
+        # # print(f"file is {x} and type is {type(x)}, and name is {x.name}, and size is {x.size}, and content type is {x.content_type}, and chuks is {x.chunks()}")
 
+        return Response(context, status = status.HTTP_201_CREATED)
+        # return Response("serializer.validated_data", status=status.HTTP_201_CREATED)
 
 
 

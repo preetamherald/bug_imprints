@@ -117,31 +117,53 @@ class User(AbstractUser):
         self.first_name = self.first_name.title()
         self.last_name = self.last_name.title()
     
-    def save(self, auth_user = None, *args, **kwargs): # if calling via shell, user_id should be passed to the function.
-        if kwargs.pop('force_insert', False) is True:
-            return super(User,self).save(*args, **kwargs)
-        
-        if auth_user is None:
+    def save(self, auth_user = None, *args, **kwargs):          # if calling via shell, user_id should be passed to the function.
+        if auth_user is not None:
+            self.modified_by = auth_user
+        else:
             req = get_request()
-            if req is None:
-                return '{"error": "user_id is None, Kindly login and try again"}'
-            auth_user = req.user
-        if self._state.adding: # if adding a new record
-            self.created_by = auth_user
-            self.modified_by = auth_user
-        else: 
-            self.modified_by = auth_user
-        return super(User,self).save(*args, **kwargs)
+            if req is not None:
+                auth_user = getattr(req, 'user', None)
+                if auth_user.is_anonymous is False:
+                    if self._state.adding:                          # if new object, set both created_by and modified_by to auth_user
+                        self.created_by = auth_user
+                        self.modified_by = auth_user
+                    else:                                           # if existing object, only update the modified_by
+                        self.modified_by = auth_user
+        return super(User,self).save(*args, **kwargs)           # if no auth_user is given, save without setting created_by or modified_by, since user can register themselves, that implies they are the creator and modifier.
+
     
-    def soft_delete(self, auth_user = None, *args, **kwargs): # if calling via shell, user_id should be passed to the function.
-        if auth_user is None:
+    def soft_delete(self, auth_user = None, *args, **kwargs):   # if calling via shell, user_id should be passed to the function.
+        if auth_user is not None:                               # if user is passes as arguement, assign it
+            self.deleted_by = auth_user
+            self.modified_by = auth_user
+        else:
             req = get_request()
-            if req is None:
-                return '{"error": "user_id is None, Kindly login and try again"}'
-            auth_user = req.user
-        self.deleted_at = timezone.now()
-        self.deleted_by_id = auth_user ## TODO find a way to get user id here to make this function independent from user input. DONE
-        self.save(auth_user = auth_user, *args, **kwargs)
+            if req is not None:
+                return ValueError("kindly provide auth_user")   # This case is possibe in case of shell use, ask user to provide required field, alternatively can give a cmd form to login in shell                                                   
+            auth_user = getattr(req, 'user', None)
+            if auth_user.is_anonymous is True:                               # this case can happed incase a not logged in user requests for deletion using any bug
+                raise ValueError("Please login and try again")
+        self.deleted_by = auth_user
+        self.modified_by = auth_user                            # if user is not available in request, then it is a shell call, do not update deleted_by and modified_by
+        self.deleted_at = timezone.now()                        # set deleted_at to current time
+        return self.save(auth_user=auth_user, *args, **kwargs)  # save the model
+
+       
+                # raise ValueError("Please Login & Try again.")
+        # if auth_user.is_superuser == False:                                   # permissions to be checked outside models.py
+        #    raise ValueError("You are not authorized to delete this user.")
+        # self.deleted_by = auth_user
+        # self.modified_by = auth_user
+
+        # if auth_user is None:
+        #     req = get_request()
+        #     if req is None:
+        #         return '{"error": "user_id is None, Kindly login and try again"}'
+        #     auth_user = req.user
+        # self.deleted_at = timezone.now()
+        # self.deleted_by_id = auth_user ## TODO find a way to get user id here to make this function independent from user input. DONE
+        # self.save(auth_user = auth_user, *args, **kwargs)
 
     @property
     def get_active_teams_list(self):

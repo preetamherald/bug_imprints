@@ -20,18 +20,36 @@ class BaseModel(models.Model):
     class Meta:
         abstract = True
 
+    # def save(self, auth_user = None, *args, **kwargs): # if calling via shell, user_id should be passed to the function.
+    #     if auth_user is None:
+    #         req = get_request()
+    #         if req is None:
+    #             return '{"error": "user_id is None, Kindly login and try again"}'
+    #         auth_user = req.user
+    #     if self._state.adding: # if adding a new record
+    #         self.created_by = auth_user
+    #         self.modified_by = auth_user
+    #     else: 
+    #         self.modified_by = auth_user
+    #     super().save(*args, **kwargs)
+
     def save(self, auth_user = None, *args, **kwargs): # if calling via shell, user_id should be passed to the function.
-        if auth_user is None:
+        if auth_user is not None:
+            self.modified_by = auth_user
+        else:
             req = get_request()
-            if req is None:
-                return '{"error": "user_id is None, Kindly login and try again"}'
-            auth_user = req.user
-        if self._state.adding: # if adding a new record
+            if req is not None:
+                return ValueError("kindly provide auth_user")   # This case is possibe in case of shell use, ask user to provide required field, alternatively can give a cmd form to login in shell                                                   
+            auth_user = getattr(req, 'user', None)
+            if auth_user.is_anonymous is True:                               # this case can happed incase a not logged in user requests for deletion using any bug
+                raise ValueError("Please login and try again")
+        
+        if self._state.adding:                                  # if new object, set both created_by and modified_by to auth_user
             self.created_by = auth_user
             self.modified_by = auth_user
-        else: 
+        else:                                                   # if existing object, only update the modified_by
             self.modified_by = auth_user
-        super().save(*args, **kwargs)
+        return super(User,self).save(*args, **kwargs)
 
 # This model shall be inherited by every model that needs soft delete functionality.
 class SoftDeleteModel(models.Model):
@@ -41,15 +59,22 @@ class SoftDeleteModel(models.Model):
     class Meta:
         abstract = True
 
-    def soft_delete(self, user_id = None, *args, **kwargs): # if calling via shell, user_id should be passed to the function.
-        if user_id is None:
+    def soft_delete(self, auth_user = None, *args, **kwargs):   # if calling via shell, user_id should be passed to the function.
+        if auth_user is not None:                               # if user is passes as arguement, assign it
+            self.deleted_by = auth_user
+            self.modified_by = auth_user
+        else:
             req = get_request()
-            if req is None:
-                return '{"error": "user_id is None, Kindly login and try again"}'
-            user_id = req.user
-        self.deleted_at = timezone.now()
-        self.deleted_by_id = user_id ## TODO find a way to get user id here to make this function independent from user input. DONE
-        self.save()
+            if req is not None:
+                return ValueError("kindly provide auth_user")   # This case is possibe in case of shell use, ask user to provide required field, alternatively can give a cmd form to login in shell                                                   
+            auth_user = getattr(req, 'user', None)
+            if auth_user.is_anonymous is True:                               # this case can happed incase a not logged in user requests for deletion using any bug
+                raise ValueError("Please login and try again")
+        self.deleted_by = auth_user
+        self.modified_by = auth_user                            # if user is not available in request, then it is a shell call, do not update deleted_by and modified_by
+        self.deleted_at = timezone.now()                        # set deleted_at to current time
+        return self.save(auth_user=auth_user, *args, **kwargs)  # save the model
+
 
     # def get_queryset(self):                                                                       #TODO figure out how to fix this 
     #     return super(SoftDeleteModel, self).get_queryset().filter(deleted_at__isnull=True) 

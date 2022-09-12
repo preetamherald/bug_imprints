@@ -4,9 +4,10 @@ from rest_framework.response import Response
 from rest_framework import generics, status, serializers
 from rest_framework.permissions import IsAdminUser, IsAuthenticated
 
+from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework_simplejwt.authentication import JWTAuthentication
 
-
+from .models import User
 from .services import add_user_to_team, remove_team_from_user, update_account_type, disable_account
 
 # Create your views here.
@@ -17,7 +18,7 @@ class AddUserToTeam(generics.GenericAPIView):
         team_id = serializers.IntegerField(required=True)
 
     authentication_classes = [JWTAuthentication]
-    permission_classes = [IsAuthenticated, IsAdminUser]
+    permission_classes = [IsAuthenticated] # removed IsAdminUser permission since team leaders can also add users to team
     serializer_class = InputSerializer
 
     def post(self, request , *args, **kwargs):
@@ -35,7 +36,7 @@ class RemoveUserFromTeam(generics.GenericAPIView):
         team_id = serializers.IntegerField(required=True)
 
     authentication_classes = [JWTAuthentication]
-    permission_classes = [IsAuthenticated, IsAdminUser]
+    permission_classes = [IsAuthenticated] # removed IsAdminUser permission since team leaders can also remove users from team
     serializer_class = InputSerializer
 
     def post(self, request , *args, **kwargs):
@@ -89,3 +90,44 @@ class DisableAccount(generics.GenericAPIView):
         user_id = serializer.validated_data['user_id']
         response = disable_account(user_id=user_id, auth_user=request.user)
         return Response(response, status=status.HTTP_200_OK)
+
+    
+
+class UserListView(generics.ListAPIView):
+    class UserSerializer(serializers.ModelSerializer):
+        class Meta:
+            model = User
+            fields = ('pk', 'username', 'email')
+
+    queryset = User.objects.all().filter(deleted_at__isnull=True)
+    serializer_class = UserSerializer
+    permission_classes = [IsAuthenticated]
+
+
+class RegisterUser(generics.CreateAPIView):
+    class UserSerializer(serializers.ModelSerializer):
+        class Meta:
+            model = User
+            fields = ('pk', 'username', 'email', 'password')
+
+        def create(self, validated_data, *args, **kwargs):
+            user = User.objects.create_user(**validated_data)
+            user.set_password(validated_data['password'])
+            user.save(*args, **kwargs)
+            return user
+
+    serializer_class = UserSerializer
+
+    def post(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        if not serializer.is_valid():
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        self.perform_create(serializer)
+        user = User.objects.get(username=serializer.data['username'])
+        refresh = RefreshToken.for_user(user)
+        headers = self.get_success_headers(serializer.data)
+        return Response(
+            {"data": serializer.data, "refresh": str(refresh), "access": str(refresh.access_token)},
+            status=status.HTTP_201_CREATED, 
+            headers=headers,
+            )
