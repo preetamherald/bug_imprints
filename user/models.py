@@ -6,7 +6,7 @@ from django.contrib.auth.hashers import make_password
 from django.utils.translation import gettext_lazy as _
 
 from django.utils import timezone
-from tracker.middlewares import get_request
+from common.middlewares import get_request
 
 class UserManager(BaseUserManager):
     use_in_migrations = True
@@ -50,6 +50,12 @@ class UserManager(BaseUserManager):
 # Create your models here.
 
 class User(AbstractUser):
+    '''
+    Custom User Model, 
+    with email as the unique identifier instead of username,
+    and maintains record of creator, modifier and deleter of the object
+
+    '''
     email = models.EmailField(_("email address"), blank=False, null=False,unique=True)
     account_type = models.CharField(max_length=1,blank=False, null=False, default = 'W', choices=(('W', 'Watcher'), ('C', 'Contributor'), ('T', 'Team Leader'), ('S', 'Superuser'),))
     teams = models.ManyToManyField('tracker.Teams', related_name='users', blank=True)
@@ -84,40 +90,72 @@ class User(AbstractUser):
         self.first_name = self.first_name.title()
         self.last_name = self.last_name.title()
     
-    def save(self, auth_user = None, *args, **kwargs):          # if calling via shell, user_id should be passed to the function.
+    def save(self, auth_user = None, *args, **kwargs):
+        '''
+        set the created_by and modified_by to the user who is creating the object if it's available.
+        and keeps updating the modified_by to the user who is modifying the object with the current time.
+
+        if the method is called via request, the user will be fetched from the request object, no need to pass the user_id.
+        if the method is called via shell, then the "auth_user=user_id" should be passed to the function.
+        if no user_id is passed, then it shall be treated as user created by systm or registration form 
+        and the created_by and modified_by will be set to none.
+        '''
         if auth_user is not None:
+            # CASE: if user is passes as arguement, assign it
             self.modified_by = auth_user
         else:
             req = get_request()
             if req is not None:
                 auth_user = getattr(req, 'user', None)
+                # CHECK: if logged in user is not anonymous user.
                 if auth_user.is_anonymous is False:
-                    if self._state.adding:                          # if new object, set both created_by and modified_by to auth_user
+                    if self._state.adding:
+                        # CASE: if new object, set both created_by and modified_by to auth_user
                         self.created_by = auth_user
                         self.modified_by = auth_user
-                    else:                                           # if existing object, only update the modified_by
+                    else:
+                        # CASE: if existing object, only update the modified_by
                         self.modified_by = auth_user
-        return super(User,self).save(*args, **kwargs)           # if no auth_user is given, save without setting created_by or modified_by, since user can register themselves, that implies they are the creator and modifier.
-
+        # if no user is passed, then it shall be treated as user created by systm or registration form
+        # and the created_by and modified_by will be set to none.
+        # TODO: set created_by and modified_by to self if no user is passed
+        return super(User,self).save(*args, **kwargs)
     
-    def soft_delete(self, auth_user = None, *args, **kwargs):   # if calling via shell, user_id should be passed to the function.
-        if auth_user is not None:                               # if user is passes as arguement, assign it
+    def soft_delete(self, auth_user = None, *args, **kwargs):
+        '''
+        set the deleted_by to the user who is deleting the object and set the deleted_at to the current time.
+
+        if the method is called via request, the user will be fetched from the request object, no need to pass the user_id.
+        if the method is called via shell, then the "auth_user=user_id" should be passed to the function.
+        '''
+        if auth_user is not None:
+            # CASE: if user is passes as arguement, assign it
             self.deleted_by = auth_user
             self.modified_by = auth_user
         else:
             req = get_request()
             if req is not None:
-                return ValueError("kindly provide auth_user")   # This case is possibe in case of shell use, ask user to provide required field, alternatively can give a cmd form to login in shell                                                   
+                # CASE: Request is unavailable and auth_user is not passed
+                # Inference: The method is called via shell, so auth_user is required
+                # Solution: Raise an error
+                # Alternative: TODO: Check if we can send a login request in shell 
+                return ValueError("kindly provide auth_user") 
             auth_user = getattr(req, 'user', None)
-            if auth_user.is_anonymous is True:                               # this case can happed incase a not logged in user requests for deletion using any bug
+            if auth_user.is_anonymous is True:
+                # CASE: user is not logged in
+                # Solution: Raise an error
+                # Remark: This block running indicates some APIs are not protected
                 raise ValueError("Please login and try again")
         self.deleted_by = auth_user
-        self.modified_by = auth_user                            # if user is not available in request, then it is a shell call, do not update deleted_by and modified_by
-        self.deleted_at = timezone.now()                        # set deleted_at to current time
-        return self.save(auth_user=auth_user, *args, **kwargs)  # save the model
+        self.modified_by = auth_user                            
+        self.deleted_at = timezone.now()
+        return self.save(auth_user=auth_user, *args, **kwargs)
 
     @property
     def get_active_teams_list(self):
+        '''
+        Returns queryset of active Team list of the user: Teams model.
+        '''
         return self.teams.all().filter(deleted_at__isnull=True)
 
     
