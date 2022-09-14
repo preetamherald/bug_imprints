@@ -12,7 +12,7 @@ from tracker.selectors import get_assigned_team_members, get_team_members, get_t
 from .serializers import TeamsSerializer, BugsSerializer, BugResolutionSerializer
 from tracker.models import Teams, Bug, Messeges, BugResolution
 
-from .mixins import SoftDeleteModelMixin
+from common.mixins import SoftDeleteModelMixin
 
 from django.contrib.auth import get_user_model
 User = get_user_model()

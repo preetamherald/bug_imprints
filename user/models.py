@@ -6,7 +6,7 @@ from django.contrib.auth.hashers import make_password
 from django.utils.translation import gettext_lazy as _
 
 from django.utils import timezone
-from tracker.middlewares import get_request
+from common.middlewares import get_request
 
 class UserManager(BaseUserManager):
     use_in_migrations = True

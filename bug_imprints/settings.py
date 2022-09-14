@@ -57,7 +57,7 @@ MIDDLEWARE = [
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
     'silk.middleware.SilkyMiddleware',
-    'tracker.middlewares.RequestMiddleware',
+    'common.middlewares.RequestMiddleware',
 ]
 
 ROOT_URLCONF = 'bug_imprints.urls'
