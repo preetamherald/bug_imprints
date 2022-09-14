@@ -1,10 +1,3 @@
-# import imp
-# from posixpath import basename
-# from django.urls import include
-# from django.contrib import admin
-# from rest_framework.routers import DefaultRouter
-# from . views import teamsViewSet, bugsViewSet, userViewSet, mediaStoreViewSet, messegesViewSet, bugResolutionViewSet, bugWatchViewSet, bugDuplicateViewSet
-
 from django.urls import path
 
 from . views import TeamsList, TeamsDetail, BugList, BugDetail, BugResolutionList, BugResolutionDetail, MessegeCreate, MessegeDestroy, TeamBugResolutionList, MediaUpload

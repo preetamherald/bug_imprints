@@ -8,9 +8,6 @@ from django.utils.translation import gettext_lazy as _
 from django.utils import timezone
 from tracker.middlewares import get_request
 
-# from tracker.models import BaseModel as CustomBaseModel, SoftDeleteModel
-
-
 class UserManager(BaseUserManager):
     use_in_migrations = True
 
@@ -49,36 +46,6 @@ class UserManager(BaseUserManager):
             raise ValueError("Superuser must have is_superuser=True.")
 
         return self._create_user(username, email, password, force_insert= True, **extra_fields) #restrict force user to this function call only
-
-
-    # def create_user(self, email, username=None, password=None, first_name=None, last_name=None, *args, **kwargs):
-    #     if email is None:
-    #         raise TypeError('Users must have an email address.')
-
-    #     user = self.model(email=self.normalize_email(email))
-    #     user.set_password(password)
-
-    #     GlobalUserModel = apps.get_model(
-    #         self.model._meta.app_label, self.model._meta.object_name
-    #     )
-    #     username = GlobalUserModel.normalize_username(username)
-
-    #     user.username = username
-    #     user.first_name = first_name
-    #     user.last_name = last_name
-    #     user.save(**kwargs)
-
-    #     return user
-
-    # def create_superuser(self, email, password, username=None, first_name=None, last_name=None):
-    #     if password is None:
-    #         raise TypeError('Superusers must have a password.')
-    #     user = self.create_user(email, username, password, first_name, last_name , force_insert= True)
-    #     user.is_superuser = True
-    #     user.is_staff = True
-    #     user.save(force_insert= True)
-    #     return user
-
 
 # Create your models here.
 
@@ -148,22 +115,6 @@ class User(AbstractUser):
         self.modified_by = auth_user                            # if user is not available in request, then it is a shell call, do not update deleted_by and modified_by
         self.deleted_at = timezone.now()                        # set deleted_at to current time
         return self.save(auth_user=auth_user, *args, **kwargs)  # save the model
-
-       
-                # raise ValueError("Please Login & Try again.")
-        # if auth_user.is_superuser == False:                                   # permissions to be checked outside models.py
-        #    raise ValueError("You are not authorized to delete this user.")
-        # self.deleted_by = auth_user
-        # self.modified_by = auth_user
-
-        # if auth_user is None:
-        #     req = get_request()
-        #     if req is None:
-        #         return '{"error": "user_id is None, Kindly login and try again"}'
-        #     auth_user = req.user
-        # self.deleted_at = timezone.now()
-        # self.deleted_by_id = auth_user ## TODO find a way to get user id here to make this function independent from user input. DONE
-        # self.save(auth_user = auth_user, *args, **kwargs)
 
     @property
     def get_active_teams_list(self):

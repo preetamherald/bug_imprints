@@ -20,19 +20,6 @@ class BaseModel(models.Model):
     class Meta:
         abstract = True
 
-    # def save(self, auth_user = None, *args, **kwargs): # if calling via shell, user_id should be passed to the function.
-    #     if auth_user is None:
-    #         req = get_request()
-    #         if req is None:
-    #             return '{"error": "user_id is None, Kindly login and try again"}'
-    #         auth_user = req.user
-    #     if self._state.adding: # if adding a new record
-    #         self.created_by = auth_user
-    #         self.modified_by = auth_user
-    #     else: 
-    #         self.modified_by = auth_user
-    #     super().save(*args, **kwargs)
-
     def save(self, auth_user = None, *args, **kwargs): # if calling via shell, user_id should be passed to the function.
         if auth_user is not None:
             self.modified_by = auth_user
@@ -74,7 +61,6 @@ class SoftDeleteModel(models.Model):
         self.modified_by = auth_user                            # if user is not available in request, then it is a shell call, do not update deleted_by and modified_by
         self.deleted_at = timezone.now()                        # set deleted_at to current time
         return self.save(auth_user=auth_user, *args, **kwargs)  # save the model
-
 
     # def get_queryset(self):                                                                       #TODO figure out how to fix this 
     #     return super(SoftDeleteModel, self).get_queryset().filter(deleted_at__isnull=True) 

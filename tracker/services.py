@@ -1,7 +1,7 @@
 #services
 from . selectors import get_bug_resolution_instance, get_team_members
 from user.selectors import get_user_instance
-from . models import Messeges, MediaStore, BugResolution
+from . models import Messeges, MediaStore
 
 from user.models import User
 
@@ -29,8 +29,6 @@ def add_messege_to_bug_resolution(message, attachments, user_id, bug_resolution_
     return ({"response": "Messege Successfully added to bug resolution", "files": file_response})
 
 def upload_media_return_id(files, auth_user: User = None, *args, **kwargs):
-    # if file is None or file == '' or file is []:
-    #     return {'response': 'ERROR: Invalid file'}
     upload_status = []
     for file in files:
         media_store = MediaStore.objects.create(media_file=file, media_type=file.content_type)
