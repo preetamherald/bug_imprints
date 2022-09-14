@@ -13,6 +13,12 @@ from .services import add_user_to_team, remove_team_from_user, update_account_ty
 # Create your views here.
 
 class AddUserToTeam(generics.GenericAPIView):
+    '''
+    API View to add a user to a team
+    Accepts: user_id, team_id
+    Available to: Superuser (for all teams), Team leader (for their team)
+    Method: POST
+    '''
     class InputSerializer(serializers.Serializer):
         user_id = serializers.IntegerField(required=True)
         team_id = serializers.IntegerField(required=True)
@@ -31,6 +37,12 @@ class AddUserToTeam(generics.GenericAPIView):
         return Response(response, status=status.HTTP_200_OK)
 
 class RemoveUserFromTeam(generics.GenericAPIView):
+    '''
+    API View to remove a user from a team
+    Accepts: user_id, team_id
+    Available to: Superuser (for all teams), Team leader (for their team)
+    Method: POST
+    '''
     class InputSerializer(serializers.Serializer):
         user_id = serializers.IntegerField(required=True)
         team_id = serializers.IntegerField(required=True)
@@ -49,6 +61,12 @@ class RemoveUserFromTeam(generics.GenericAPIView):
         return Response(response, status=status.HTTP_200_OK)
 
 class UpdateAccountType(generics.GenericAPIView):
+    '''
+    API View to update a user's account type
+    Accepts: user_id, account_type
+    Available to: Superuser
+    METHOD: POST
+    '''
     class InputSerializer(serializers.Serializer):
         user_id = serializers.IntegerField(required=True)
         account_type = serializers.CharField(required=True)
@@ -76,6 +94,12 @@ class UpdateAccountType(generics.GenericAPIView):
 
 
 class DisableAccount(generics.GenericAPIView):
+    '''
+    API View to disable a user's account
+    Accepts: user_id
+    Available to: Superuser (for all teams)
+    Method: POST
+    '''
     class InputSerializer(serializers.Serializer):
         user_id = serializers.IntegerField(required=True)
 
@@ -92,8 +116,12 @@ class DisableAccount(generics.GenericAPIView):
         return Response(response, status=status.HTTP_200_OK)
 
     
-
 class UserListView(generics.ListAPIView):
+    '''
+    API View to get active user list
+    Available to: authenticated users
+    Method: GET
+    '''
     class UserSerializer(serializers.ModelSerializer):
         class Meta:
             model = User
@@ -105,6 +133,11 @@ class UserListView(generics.ListAPIView):
 
 
 class RegisterUser(generics.CreateAPIView):
+    '''
+    API View to register a new user
+    Available to: open to all
+    Method: POST
+    '''
     class UserSerializer(serializers.ModelSerializer):
         class Meta:
             model = User
@@ -124,7 +157,8 @@ class RegisterUser(generics.CreateAPIView):
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
         self.perform_create(serializer)
         user = User.objects.get(username=serializer.data['username'])
-        refresh = RefreshToken.for_user(user)
+        # ACTION: generate refresh token and access token for the user
+        refresh = RefreshToken.for_user(user) 
         headers = self.get_success_headers(serializer.data)
         return Response(
             {"data": serializer.data, "refresh": str(refresh), "access": str(refresh.access_token)},

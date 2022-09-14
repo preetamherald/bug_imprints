@@ -4,7 +4,7 @@ from rest_framework.response import Response
 class SoftDeleteModelMixin:
     """
     Soft Delete a model instance.
-    only the creator or superuser can soft delete
+    Available to: superuser, creator
     """
     def destroy(self, request, *args, **kwargs):
         instance = self.get_object()
